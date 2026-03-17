@@ -39,20 +39,33 @@
         @error="fileError = $event"
       />
 
-      <div class="terminal__divider">
-        <span class="terminal__divider-label">EXECUTE</span>
+      <div class="terminal__run">
+        <button
+          class="terminal__run-btn"
+          :disabled="!aafFile || !!fileError || conversionStatus === 'converting'"
+          @click="startConversion"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Run Conversion
+        </button>
+        <p v-if="!aafFile || fileError" class="terminal__run-hint">Load an AAF file above to enable conversion</p>
       </div>
 
-      <DownloadPanel
-        :status="conversionStatus"
-        :progress="conversionProgress"
-        :can-convert="!!aafFile && !fileError"
-        :stats="conversionStats"
-        :error-message="conversionError"
-        @convert="startConversion"
-        @download="downloadResult"
-        @reset="resetConversion"
-      />
+      <template v-if="conversionStatus !== 'idle'">
+        <div class="terminal__divider">
+          <span class="terminal__divider-label">EXECUTE</span>
+        </div>
+        <DownloadPanel
+          :status="conversionStatus"
+          :progress="conversionProgress"
+          :stats="conversionStats"
+          :error-message="conversionError"
+          @download="downloadResult"
+          @reset="resetConversion"
+        />
+      </template>
 
       <template v-if="parsedTimeline">
         <div class="terminal__divider">
@@ -336,6 +349,49 @@ code.inline-code {
   letter-spacing: 0.18em;
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+/* ── RUN BUTTON ── */
+.terminal__run {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.terminal__run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border: 1px solid var(--border-bright);
+  color: var(--text-bright);
+  font-family: var(--font);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.7rem 1.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.01em;
+  border-radius: 2px;
+}
+
+.terminal__run-btn:not(:disabled):hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+  box-shadow: 0 0 20px var(--green-glow);
+}
+
+.terminal__run-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.terminal__run-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: 0.1rem;
 }
 
 /* ── FOOTER ── */

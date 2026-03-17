@@ -1,25 +1,8 @@
 <template>
   <div class="panel">
 
-    <!-- IDLE -->
-    <template v-if="status === 'idle'">
-      <div class="panel__idle">
-        <button
-          class="panel__exec-btn"
-          :disabled="!canConvert"
-          @click="$emit('convert')"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Run Conversion
-        </button>
-        <p v-if="!canConvert" class="panel__idle-hint">Load an AAF file above to enable conversion</p>
-      </div>
-    </template>
-
     <!-- CONVERTING -->
-    <template v-else-if="status === 'converting'">
+    <template v-if="status === 'converting'">
       <div class="panel__log">
         <TransitionGroup name="log-fade">
           <div
@@ -103,12 +86,11 @@ import { computed } from 'vue'
 const props = defineProps({
   status:       { type: String,  default: 'idle' },
   progress:     { type: Number,  default: 0 },
-  canConvert:   { type: Boolean, default: false },
   stats:        { type: Object,  default: null },
   errorMessage: { type: String,  default: '' },
 })
 
-defineEmits(['convert', 'download', 'reset'])
+defineEmits(['download', 'reset'])
 
 const STEPS = [
   { at: 0.00, tag: '$',  msg: 'Parsing AAF container structure',   type: 'cmd' },
@@ -139,48 +121,6 @@ const currentStep = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
-}
-
-/* ── IDLE ── */
-.panel__idle {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.panel__exec-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  background: none;
-  border: 1px solid var(--border-bright);
-  color: var(--text-bright);
-  font-family: var(--font);
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.7rem 1.75rem;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
-  letter-spacing: 0.01em;
-  border-radius: 2px;
-}
-
-.panel__exec-btn:not(:disabled):hover {
-  border-color: var(--green);
-  color: var(--green);
-  background: var(--green-dim);
-  box-shadow: 0 0 20px var(--green-glow);
-}
-
-.panel__exec-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.panel__idle-hint {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-left: 0.1rem;
 }
 
 /* ── LOG ── */
