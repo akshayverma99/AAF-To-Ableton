@@ -1,304 +1,327 @@
 <template>
-  <div class="download">
-    <!-- Initial / ready state -->
-    <div v-if="status === 'idle'" class="download__idle">
-      <button
-        class="download__btn download__btn--primary"
-        :disabled="!canConvert"
-        @click="$emit('convert')"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10"/>
-          <polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-        </svg>
-        Convert to .als + WAV (ZIP)
-      </button>
-      <p v-if="!canConvert" class="download__hint">Load an AAF file to begin</p>
-    </div>
+  <div class="panel">
 
-    <!-- Converting state -->
-    <div v-else-if="status === 'converting'" class="download__converting">
-      <div class="download__progress">
-        <div class="download__progress-bar" :style="{ width: (progress * 100) + '%' }"></div>
+    <!-- IDLE -->
+    <template v-if="status === 'idle'">
+      <div class="panel__idle">
+        <button
+          class="panel__exec-btn"
+          :disabled="!canConvert"
+          @click="$emit('convert')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Run Conversion
+        </button>
+        <p v-if="!canConvert" class="panel__idle-hint">Load an AAF file above to enable conversion</p>
       </div>
-      <div class="download__progress-text">
-        <span class="download__spinner"></span>
-        Converting... {{ Math.round(progress * 100) }}%
-      </div>
-    </div>
+    </template>
 
-    <!-- Success state -->
-    <div v-else-if="status === 'done'" class="download__success">
-      <div class="download__success-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-      <div class="download__success-text">
-        <div class="download__success-title">Conversion successful!</div>
-        <div class="download__success-stats" v-if="stats">
-          {{ stats.trackCount }} tracks · {{ stats.clipCount }} clips
+    <!-- CONVERTING -->
+    <template v-else-if="status === 'converting'">
+      <div class="panel__log">
+        <TransitionGroup name="log-fade">
+          <div
+            v-for="line in visibleLogLines"
+            :key="line.msg"
+            class="panel__log-entry"
+            :class="'entry--' + line.type"
+          >
+            <span class="panel__log-tag">{{ line.tag }}</span>
+            <span class="panel__log-msg">{{ line.msg }}</span>
+          </div>
+        </TransitionGroup>
+        <div class="panel__log-entry entry--active">
+          <span class="panel__log-tag tag--active">···</span>
+          <span class="panel__log-msg">{{ currentStep.msg }}<span class="panel__cursor">▌</span></span>
+        </div>
+        <div class="panel__progress">
+          <div class="panel__progress-track">
+            <div class="panel__progress-fill" :style="{ width: (progress * 100) + '%' }"></div>
+          </div>
+          <span class="panel__progress-pct mono">{{ Math.round(progress * 100) }}%</span>
         </div>
       </div>
-      <div class="download__actions">
-        <button class="download__btn download__btn--success" @click="$emit('download')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    </template>
+
+    <!-- DONE -->
+    <template v-else-if="status === 'done'">
+      <div class="panel__log">
+        <div class="panel__log-entry entry--ok">
+          <span class="panel__log-tag">OK</span>
+          <span class="panel__log-msg">Conversion complete</span>
+        </div>
+        <div v-if="stats" class="panel__log-entry entry--meta">
+          <span class="panel__log-tag">→</span>
+          <span class="panel__log-msg">
+            <span class="mono">{{ stats.trackCount }}</span> tracks ·
+            <span class="mono">{{ stats.clipCount }}</span> clips ·
+            <span class="mono">{{ stats.wavCount }}</span> wav files ·
+            <span class="panel__als-name mono">{{ stats.alsName }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="panel__actions">
+        <button class="panel__btn panel__btn--green" @click="$emit('download')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           Download ZIP
         </button>
-        <button class="download__btn download__btn--secondary" @click="$emit('reset')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="panel__btn panel__btn--ghost" @click="$emit('reset')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="23 4 23 10 17 10"/>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
           </svg>
           Convert Another
         </button>
       </div>
-    </div>
+    </template>
 
-    <!-- Error state -->
-    <div v-else-if="status === 'error'" class="download__error">
-      <div class="download__error-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
-        </svg>
+    <!-- ERROR -->
+    <template v-else-if="status === 'error'">
+      <div class="panel__log">
+        <div class="panel__log-entry entry--err">
+          <span class="panel__log-tag">ERR</span>
+          <span class="panel__log-msg">{{ errorMessage }}</span>
+        </div>
       </div>
-      <div class="download__error-content">
-        <div class="download__error-title">Conversion failed</div>
-        <div class="download__error-message">{{ errorMessage }}</div>
+      <div class="panel__actions">
+        <button class="panel__btn panel__btn--ghost" @click="$emit('reset')">Try Again</button>
       </div>
-      <button class="download__btn download__btn--secondary" @click="$emit('reset')">Try Again</button>
-    </div>
+    </template>
+
   </div>
 </template>
 
 <script setup>
-defineProps({
-  status: {
-    type: String,
-    default: 'idle', // 'idle' | 'converting' | 'done' | 'error'
-  },
-  progress: {
-    type: Number,
-    default: 0,
-  },
-  canConvert: {
-    type: Boolean,
-    default: false,
-  },
-  stats: {
-    type: Object,
-    default: null,
-  },
-  errorMessage: {
-    type: String,
-    default: '',
-  },
+import { computed } from 'vue'
+
+const props = defineProps({
+  status:       { type: String,  default: 'idle' },
+  progress:     { type: Number,  default: 0 },
+  canConvert:   { type: Boolean, default: false },
+  stats:        { type: Object,  default: null },
+  errorMessage: { type: String,  default: '' },
 })
 
 defineEmits(['convert', 'download', 'reset'])
+
+const STEPS = [
+  { at: 0.00, tag: '$',  msg: 'Parsing AAF container structure',   type: 'cmd' },
+  { at: 0.10, tag: 'OK', msg: 'CFB filesystem mounted',            type: 'ok'  },
+  { at: 0.25, tag: '$',  msg: 'Building essence map',              type: 'cmd' },
+  { at: 0.40, tag: 'OK', msg: 'Master mob resolved, tracks mapped', type: 'ok' },
+  { at: 0.50, tag: '$',  msg: 'Generating Ableton Live XML',       type: 'cmd' },
+  { at: 0.60, tag: 'OK', msg: 'ALS structure validated',           type: 'ok'  },
+  { at: 0.70, tag: '$',  msg: 'Compressing with gzip',             type: 'cmd' },
+  { at: 0.80, tag: '$',  msg: 'Packaging ZIP archive',             type: 'cmd' },
+  { at: 0.90, tag: 'OK', msg: 'Samples embedded successfully',     type: 'ok'  },
+]
+
+const visibleLogLines = computed(() =>
+  STEPS.filter(s => props.progress > s.at + 0.08)
+)
+
+const currentStep = computed(() =>
+  [...STEPS].reverse().find(s => props.progress >= s.at) || STEPS[0]
+)
 </script>
 
 <style scoped>
-.download {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-
-.download__idle {
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-mid);
+  padding: 1.5rem 1.75rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 1.1rem;
+}
+
+/* ── IDLE ── */
+.panel__idle {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.download__btn {
-  display: flex;
+.panel__exec-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-mono);
+  gap: 0.6rem;
+  background: none;
+  border: 1px solid var(--border-bright);
+  color: var(--text-bright);
+  font-family: var(--font);
   font-size: 0.875rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  padding: 0.7rem 1.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.01em;
+  border-radius: 2px;
 }
 
-.download__btn:disabled {
-  opacity: 0.4;
+.panel__exec-btn:not(:disabled):hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+  box-shadow: 0 0 20px var(--green-glow);
+}
+
+.panel__exec-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
-.download__btn--primary {
-  background: var(--accent-blue);
-  color: #fff;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
+.panel__idle-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: 0.1rem;
 }
 
-.download__btn--primary:not(:disabled):hover {
-  background: var(--accent-blue-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 140, 201, 0.3);
-}
-
-.download__btn--success {
-  background: var(--accent-green);
-  color: #fff;
-}
-
-.download__btn--success:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.download__btn--secondary {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.download__btn--secondary:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-}
-
-.download__hint {
-  font-size: 0.8rem;
-  color: var(--text-disabled);
-  font-family: var(--font-mono);
-  margin: 0;
-}
-
-.download__converting {
+/* ── LOG ── */
+.panel__log {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  align-items: center;
+  gap: 0.3rem;
 }
 
-.download__progress {
-  width: 100%;
-  height: 4px;
+.panel__log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+}
+
+.panel__log-tag {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 2.2rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.panel__log-msg {
+  color: var(--text);
+}
+
+/* entry variants */
+.entry--ok   .panel__log-tag { color: var(--green); }
+.entry--err  .panel__log-tag { color: var(--red); }
+.entry--err  .panel__log-msg { color: var(--red); }
+.entry--meta .panel__log-tag { color: var(--text-dim); }
+.entry--meta .panel__log-msg { color: var(--text-dim); font-size: 0.78rem; }
+.entry--active .panel__log-msg { color: var(--yellow); }
+
+.tag--active {
+  color: var(--yellow) !important;
+  animation: pulse-tag 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-tag {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.panel__cursor {
+  color: var(--yellow);
+  animation: blink 0.9s step-end infinite;
+  margin-left: 1px;
+  font-family: var(--mono);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.panel__als-name { color: var(--cyan); }
+
+/* ── PROGRESS BAR ── */
+.panel__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.panel__progress-track {
+  flex: 1;
+  height: 3px;
   background: var(--bg-elevated);
-  border-radius: 2px;
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 
-.download__progress-bar {
+.panel__progress-fill {
   height: 100%;
-  background: var(--accent-blue);
-  border-radius: 2px;
+  background: var(--green);
   transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--green-glow);
 }
 
-.download__progress-text {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-}
-
-.download__spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent-blue);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.download__success {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.download__success-icon {
-  color: var(--accent-green);
-  background: rgba(106, 171, 115, 0.1);
-  border: 1px solid rgba(106, 171, 115, 0.3);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.panel__progress-pct {
+  font-size: 0.7rem;
+  color: var(--text-dim);
   flex-shrink: 0;
+  min-width: 2.5rem;
+  text-align: right;
 }
 
-.download__success-text {
-  flex: 1;
-}
-
-.download__success-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--accent-green);
-  font-family: var(--font-mono);
-}
-
-.download__success-stats {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  margin-top: 0.2rem;
-}
-
-.download__actions {
+/* ── ACTIONS ── */
+.panel__actions {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.download__error {
-  display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
 }
 
-.download__error-icon {
-  color: var(--accent-red);
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
-
-.download__error-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.download__error-title {
-  font-size: 0.9rem;
+.panel__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  font-family: var(--font);
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--accent-red);
-  font-family: var(--font-mono);
+  padding: 0.6rem 1.3rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 2px;
+  letter-spacing: 0.01em;
 }
 
-.download__error-message {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  margin-top: 0.25rem;
-  word-break: break-word;
+.panel__btn--green {
+  border: 1px solid var(--green);
+  color: var(--green);
 }
+
+.panel__btn--green:hover {
+  background: var(--green-dim);
+  box-shadow: 0 0 16px var(--green-glow);
+}
+
+.panel__btn--ghost {
+  border: 1px solid var(--border-mid);
+  color: var(--text-dim);
+}
+
+.panel__btn--ghost:hover {
+  border-color: var(--border-bright);
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── TRANSITIONS ── */
+.log-fade-enter-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.log-fade-enter-from   { opacity: 0; transform: translateY(4px); }
 </style>

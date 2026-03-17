@@ -1,61 +1,83 @@
 <template>
   <div
-    class="dropzone"
+    class="drop"
     :class="{
-      'dropzone--active': isDragging,
-      'dropzone--has-file': !!file,
-      'dropzone--error': !!error
+      'drop--active': isDragging,
+      'drop--loaded': !!file,
+      'drop--error':  !!error,
     }"
-    @dragover.prevent="onDragOver"
+    @dragover.prevent="isDragging = true"
     @dragleave.prevent="onDragLeave"
     @drop.prevent="onDrop"
-    @click="triggerFileInput"
+    @click="!file && fileInputRef?.click()"
   >
     <input
       ref="fileInputRef"
       type="file"
       accept=".aaf"
-      style="display: none"
-      @change="onFileInputChange"
+      style="display:none"
+      @change="e => validateAndEmit(e.target.files?.[0])"
     />
 
-    <div v-if="!file" class="dropzone__content">
-      <div class="dropzone__icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="18" x2="12" y2="12"/>
-          <line x1="9" y1="15" x2="15" y2="15"/>
-        </svg>
+    <!-- Empty state -->
+    <template v-if="!file">
+      <div class="drop__inner">
+        <div class="drop__icon-area">
+          <div class="drop__icon" :class="{ 'drop__icon--active': isDragging }">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+        </div>
+        <div class="drop__text-area">
+          <p class="drop__primary" v-if="!isDragging">
+            Drop your <span class="drop__highlight">.aaf</span> file here
+          </p>
+          <p class="drop__primary drop__primary--active" v-else>
+            Release to load file
+          </p>
+          <p class="drop__secondary">or <span class="drop__link">click to browse</span> your filesystem</p>
+        </div>
+        <div class="drop__hint">
+          <span class="drop__hint-label">Supports:</span>
+          AAF exports from DaVinci Resolve
+        </div>
       </div>
-      <div class="dropzone__text">
-        <p class="dropzone__primary">Drop your AAF file here</p>
-        <p class="dropzone__secondary">or click to browse</p>
-      </div>
-      <div class="dropzone__hint">Supports AAF files exported from DaVinci Resolve</div>
-    </div>
+    </template>
 
-    <div v-else class="dropzone__file">
-      <div class="dropzone__file-icon">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <polyline points="9 12 11 14 15 10"/>
-        </svg>
+    <!-- File loaded -->
+    <template v-else>
+      <div class="drop__file">
+        <div class="drop__file-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <polyline points="9 13 11 15 15 11"/>
+          </svg>
+        </div>
+        <div class="drop__file-info">
+          <span class="drop__file-name">{{ file.name }}</span>
+          <span class="drop__file-meta">{{ formatSize(file.size) }} · AAF</span>
+        </div>
+        <button class="drop__clear" @click.stop="clearFile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
-      <div class="dropzone__file-info">
-        <span class="dropzone__file-name">{{ file.name }}</span>
-        <span class="dropzone__file-size">{{ formatFileSize(file.size) }}</span>
-      </div>
-      <button class="dropzone__clear" @click.stop="clearFile" title="Remove file">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
+    </template>
 
-    <div v-if="error" class="dropzone__error-msg">{{ error }}</div>
+    <!-- Error -->
+    <div v-if="error" class="drop__error">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {{ error }}
+    </div>
   </div>
 </template>
 
@@ -63,56 +85,27 @@
 import { ref } from 'vue'
 
 const props = defineProps({
-  file: {
-    type: Object,
-    default: null
-  },
-  error: {
-    type: String,
-    default: ''
-  }
+  file:  { type: Object, default: null },
+  error: { type: String, default: '' },
 })
-
 const emit = defineEmits(['update:file', 'error'])
 
 const fileInputRef = ref(null)
-const isDragging = ref(false)
-
-function triggerFileInput() {
-  if (!props.file) {
-    fileInputRef.value?.click()
-  }
-}
-
-function onDragOver(e) {
-  isDragging.value = true
-}
+const isDragging   = ref(false)
 
 function onDragLeave(e) {
-  // Only set to false if we're actually leaving the dropzone
-  if (!e.currentTarget.contains(e.relatedTarget)) {
-    isDragging.value = false
-  }
+  if (!e.currentTarget.contains(e.relatedTarget)) isDragging.value = false
 }
 
 function onDrop(e) {
   isDragging.value = false
-  const droppedFile = e.dataTransfer?.files?.[0]
-  if (droppedFile) {
-    validateAndEmit(droppedFile)
-  }
-}
-
-function onFileInputChange(e) {
-  const selectedFile = e.target.files?.[0]
-  if (selectedFile) {
-    validateAndEmit(selectedFile)
-  }
+  validateAndEmit(e.dataTransfer?.files?.[0])
 }
 
 function validateAndEmit(f) {
+  if (!f) return
   if (!f.name.toLowerCase().endsWith('.aaf')) {
-    emit('error', 'Please select an AAF file (.aaf extension required)')
+    emit('error', 'Invalid file type — only .aaf files are supported')
     return
   }
   emit('error', '')
@@ -121,151 +114,184 @@ function validateAndEmit(f) {
 
 function clearFile() {
   emit('update:file', null)
-  if (fileInputRef.value) {
-    fileInputRef.value.value = ''
-  }
+  if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+function formatSize(b) {
+  if (b < 1024) return b + ' B'
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'
+  return (b / 1048576).toFixed(2) + ' MB'
 }
 </script>
 
 <style scoped>
-.dropzone {
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  padding: 2rem;
+.drop {
+  border: 1px solid var(--border-mid);
+  background: var(--bg-panel);
+  padding: 2rem 1.75rem;
   cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-  background: var(--bg-secondary);
-  min-height: 180px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
   position: relative;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.dropzone:hover {
-  border-color: var(--accent-blue);
+.drop:hover:not(.drop--loaded) {
+  border-color: var(--border-bright);
+  background: color-mix(in srgb, var(--bg-panel) 92%, var(--cyan) 8%);
+}
+
+.drop--active {
+  border-color: var(--green) !important;
+  background: color-mix(in srgb, var(--bg-panel) 90%, var(--green) 10%) !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08), inset 0 0 60px rgba(255, 107, 0, 0.03);
+}
+
+.drop--loaded {
+  border-color: var(--border-mid);
   background: var(--bg-elevated);
-}
-
-.dropzone--active {
-  border-color: var(--accent-blue);
-  background: var(--bg-elevated);
-  border-style: solid;
-}
-
-.dropzone--has-file {
   cursor: default;
-  border-style: solid;
-  border-color: var(--accent-green);
+  min-height: 80px;
 }
 
-.dropzone--error {
-  border-color: var(--accent-red);
+.drop--error {
+  border-color: var(--red) !important;
+  background: var(--red-dim) !important;
 }
 
-.dropzone__content {
+/* ── EMPTY STATE ── */
+.drop__inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.dropzone__icon {
-  color: var(--accent-blue);
-  opacity: 0.7;
-}
-
-.dropzone__text {
+  gap: 0.85rem;
   text-align: center;
 }
 
-.dropzone__primary {
-  font-size: 1rem;
+.drop__icon {
+  color: var(--text-muted);
+  transition: color 0.18s, transform 0.18s;
+}
+
+.drop__icon--active {
+  color: var(--green);
+  transform: translateY(-3px);
+}
+
+.drop:hover:not(.drop--loaded) .drop__icon {
+  color: var(--cyan);
+}
+
+.drop__primary {
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
+  color: var(--text-bright);
+  margin-bottom: 0.2rem;
 }
 
-.dropzone__secondary {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0.25rem 0 0;
+.drop__primary--active {
+  color: var(--green);
 }
 
-.dropzone__hint {
-  font-size: 0.75rem;
-  color: var(--text-disabled);
-  font-family: var(--font-mono);
+.drop__highlight {
+  font-family: var(--mono);
+  color: var(--cyan);
+  font-size: 0.9em;
 }
 
-.dropzone__file {
+.drop__secondary {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.drop__link {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(0, 250, 252, 0.35);
+}
+
+.drop__hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.7rem;
+  background: var(--bg-elevated);
+}
+
+.drop__hint-label {
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-right: 0.2rem;
+}
+
+/* ── LOADED STATE ── */
+.drop__file {
   display: flex;
   align-items: center;
   gap: 1rem;
-  width: 100%;
-  max-width: 500px;
 }
 
-.dropzone__file-icon {
-  color: var(--accent-green);
+.drop__file-icon {
+  color: var(--green);
   flex-shrink: 0;
 }
 
-.dropzone__file-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.drop__file-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.dropzone__file-name {
-  font-size: 0.9rem;
+.drop__file-name {
+  font-family: var(--mono);
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
+  color: var(--text-bright);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dropzone__file-size {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
+.drop__file-meta {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
 }
 
-.dropzone__clear {
+.drop__clear {
   background: none;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 0.3rem 0.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s, border-color 0.2s;
   flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+  border-radius: 2px;
 }
 
-.dropzone__clear:hover {
-  color: var(--accent-red);
-  border-color: var(--accent-red);
+.drop__clear:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: var(--red-dim);
 }
 
-.dropzone__error-msg {
-  color: var(--accent-red);
-  font-size: 0.8rem;
+/* ── ERROR ── */
+.drop__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: 0.75rem;
-  font-family: var(--font-mono);
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 59, 72, 0.2);
+  font-size: 0.8rem;
+  color: var(--red);
 }
 </style>
