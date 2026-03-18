@@ -81,6 +81,9 @@ export async function convertAAFtoALS(arrayBuffer, options = {}) {
   const zip = new JSZip()
   zip.file(alsName, compressed)
 
+  // Always include the Samples/imported folder so users can drag-and-drop audio
+  zip.folder('Samples/imported')
+
   // Collect unique WAV files (multiple clips can share the same WAV)
   const addedWavs = new Set()
   for (const track of timeline.tracks) {
@@ -90,6 +93,10 @@ export async function convertAAFtoALS(arrayBuffer, options = {}) {
         addedWavs.add(clip.wavName)
       }
     }
+  }
+
+  if (addedWavs.size === 0) {
+    warnings.push('No embedded audio found in this AAF. Place your WAV files in the Samples/imported/ folder next to the .als file.')
   }
 
   if (onProgress) onProgress(0.9)

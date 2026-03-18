@@ -44,6 +44,10 @@
             <span class="panel__als-name mono">{{ stats.alsName }}</span>
           </span>
         </div>
+        <div v-if="stats && stats.wavCount === 0" class="panel__log-entry entry--warn">
+          <span class="panel__log-tag">!</span>
+          <span class="panel__log-msg">No embedded audio — place your WAV files in <span class="mono">Samples/imported/</span> next to the .als file</span>
+        </div>
       </div>
       <div class="panel__actions">
         <button class="panel__btn panel__btn--green" @click="$emit('download')">
@@ -101,7 +105,7 @@ const STEPS = [
   { at: 0.60, tag: 'OK', msg: 'ALS structure validated',           type: 'ok'  },
   { at: 0.70, tag: '$',  msg: 'Compressing with gzip',             type: 'cmd' },
   { at: 0.80, tag: '$',  msg: 'Packaging ZIP archive',             type: 'cmd' },
-  { at: 0.90, tag: 'OK', msg: 'Samples embedded successfully',     type: 'ok'  },
+  { at: 0.90, tag: 'OK', msg: 'Packaging complete',                 type: 'ok'  },
 ]
 
 const visibleLogLines = computed(() =>
@@ -158,6 +162,8 @@ const currentStep = computed(() =>
 .entry--err  .panel__log-msg { color: var(--red); }
 .entry--meta .panel__log-tag { color: var(--text-dim); }
 .entry--meta .panel__log-msg { color: var(--text-dim); font-size: 0.78rem; }
+.entry--warn .panel__log-tag { color: var(--yellow); }
+.entry--warn .panel__log-msg { color: var(--yellow); font-size: 0.78rem; }
 .entry--active .panel__log-msg { color: var(--yellow); }
 
 .tag--active {
