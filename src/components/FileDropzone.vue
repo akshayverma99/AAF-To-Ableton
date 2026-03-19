@@ -22,28 +22,21 @@
     <!-- Empty state -->
     <template v-if="!file">
       <div class="drop__inner">
-        <div class="drop__icon-area">
-          <div class="drop__icon" :class="{ 'drop__icon--active': isDragging }">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-          </div>
+        <div class="drop__icon-wrap" :class="{ 'drop__icon-wrap--active': isDragging }">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
         </div>
-        <div class="drop__text-area">
+        <div class="drop__text">
           <p class="drop__primary" v-if="!isDragging">
-            Drop your <span class="drop__highlight">.aaf</span> file here
+            Drop your <code class="drop__ext">.aaf</code> file here
           </p>
-          <p class="drop__primary drop__primary--active" v-else>
-            Release to load file
-          </p>
-          <p class="drop__secondary">or <span class="drop__link">click to browse</span> your filesystem</p>
+          <p class="drop__primary drop__primary--active" v-else>Release to load</p>
+          <p class="drop__secondary">or <span class="drop__link">click to browse</span></p>
         </div>
-        <div class="drop__hint">
-          <span class="drop__hint-label">Supports:</span>
-          AAF exports from DaVinci Resolve
-        </div>
+        <div class="drop__badge">AAF · DaVinci Resolve</div>
       </div>
     </template>
 
@@ -51,7 +44,7 @@
     <template v-else>
       <div class="drop__file">
         <div class="drop__file-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
             <polyline points="9 13 11 15 15 11"/>
@@ -61,7 +54,7 @@
           <span class="drop__file-name">{{ file.name }}</span>
           <span class="drop__file-meta">{{ formatSize(file.size) }} · AAF</span>
         </div>
-        <button class="drop__clear" @click.stop="clearFile">
+        <button class="drop__clear" @click.stop="clearFile" title="Remove file">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -71,7 +64,7 @@
 
     <!-- Error -->
     <div v-if="error" class="drop__error">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -126,38 +119,46 @@ function formatSize(b) {
 
 <style scoped>
 .drop {
-  border: 1px solid var(--border-mid);
-  background: var(--bg-panel);
-  padding: 2rem 1.75rem;
+  padding: 2.5rem 1.5rem;
   cursor: pointer;
-  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  transition: border-color 0.2s, background 0.2s;
   position: relative;
-  min-height: 130px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  border: 1.5px dashed var(--border-mid);
+  border-radius: var(--radius);
+  margin: 1.25rem;
 }
 
 .drop:hover:not(.drop--loaded) {
   border-color: var(--border-bright);
-  background: color-mix(in srgb, var(--bg-panel) 92%, var(--cyan) 8%);
+  background: rgba(255,255,255,0.015);
 }
 
 .drop--active {
-  border-color: var(--green) !important;
-  background: color-mix(in srgb, var(--bg-panel) 90%, var(--green) 10%) !important;
-  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.08), inset 0 0 60px rgba(255, 107, 0, 0.03);
+  border-color: var(--accent) !important;
+  border-style: solid !important;
+  background: var(--accent-dim) !important;
 }
 
 .drop--loaded {
-  border-color: var(--border-mid);
+  border-style: solid;
+  border-color: var(--border);
   background: var(--bg-elevated);
   cursor: default;
-  min-height: 80px;
+  min-height: 72px;
+  padding: 1rem 1.25rem;
+  margin: 1.25rem;
+  border-radius: var(--radius-sm);
+  align-items: stretch;
 }
 
 .drop--error {
   border-color: var(--red) !important;
+  border-style: solid !important;
   background: var(--red-dim) !important;
 }
 
@@ -166,76 +167,100 @@ function formatSize(b) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.85rem;
+  gap: 1rem;
   text-align: center;
 }
 
-.drop__icon {
-  color: var(--text-muted);
-  transition: color 0.18s, transform 0.18s;
+.drop__icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: color 0.2s, border-color 0.2s, transform 0.2s;
 }
 
-.drop__icon--active {
-  color: var(--green);
-  transform: translateY(-3px);
+.drop:hover:not(.drop--loaded) .drop__icon-wrap {
+  color: var(--text);
+  border-color: var(--border-bright);
 }
 
-.drop:hover:not(.drop--loaded) .drop__icon {
-  color: var(--cyan);
+.drop__icon-wrap--active {
+  color: var(--accent) !important;
+  border-color: var(--accent-border) !important;
+  background: var(--accent-dim) !important;
+  transform: translateY(-2px);
+}
+
+.drop__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .drop__primary {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-bright);
-  margin-bottom: 0.2rem;
 }
 
 .drop__primary--active {
-  color: var(--green);
+  color: var(--accent);
 }
 
-.drop__highlight {
+.drop__ext {
   font-family: var(--mono);
-  color: var(--cyan);
-  font-size: 0.9em;
+  font-size: 0.85em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  padding: 0.05em 0.4em;
+  border-radius: 4px;
+  color: var(--amber);
 }
 
 .drop__secondary {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-dim);
 }
 
 .drop__link {
-  color: var(--cyan);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  text-decoration-color: rgba(0, 250, 252, 0.35);
+  color: var(--accent);
+  font-weight: 500;
 }
 
-.drop__hint {
-  font-size: 0.72rem;
+.drop__badge {
+  font-size: 0.68rem;
+  font-weight: 500;
   color: var(--text-muted);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
   padding: 0.25rem 0.7rem;
-  background: var(--bg-elevated);
-}
-
-.drop__hint-label {
-  color: var(--text-dim);
-  font-weight: 500;
-  margin-right: 0.2rem;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
 }
 
 /* ── LOADED STATE ── */
 .drop__file {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
+  width: 100%;
 }
 
 .drop__file-icon {
-  color: var(--green);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -244,11 +269,10 @@ function formatSize(b) {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 
 .drop__file-name {
-  font-family: var(--mono);
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-bright);
@@ -264,22 +288,23 @@ function formatSize(b) {
 }
 
 .drop__clear {
+  width: 28px;
+  height: 28px;
   background: none;
-  border: 1px solid var(--border-mid);
+  border: 1px solid var(--border);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0.3rem 0.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s;
-  border-radius: 2px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  border-radius: var(--radius-sm);
 }
 
 .drop__clear:hover {
   color: var(--red);
-  border-color: var(--red);
+  border-color: rgba(240, 62, 62, 0.4);
   background: var(--red-dim);
 }
 
@@ -289,9 +314,7 @@ function formatSize(b) {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 59, 72, 0.2);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--red);
 }
 </style>

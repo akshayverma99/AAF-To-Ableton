@@ -3,54 +3,61 @@
 
     <!-- CONVERTING -->
     <template v-if="status === 'converting'">
-      <div class="panel__log">
-        <TransitionGroup name="log-fade">
+      <div class="panel__steps">
+        <TransitionGroup name="step-fade">
           <div
-            v-for="line in visibleLogLines"
-            :key="line.msg"
-            class="panel__log-entry"
-            :class="'entry--' + line.type"
+            v-for="step in visibleSteps"
+            :key="step.msg"
+            class="panel__step panel__step--done"
           >
-            <span class="panel__log-tag">{{ line.tag }}</span>
-            <span class="panel__log-msg">{{ line.msg }}</span>
+            <div class="panel__step-icon panel__step-icon--done">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <span class="panel__step-msg">{{ step.msg }}</span>
           </div>
         </TransitionGroup>
-        <div class="panel__log-entry entry--active">
-          <span class="panel__log-tag tag--active">···</span>
-          <span class="panel__log-msg">{{ currentStep.msg }}<span class="panel__cursor">▌</span></span>
-        </div>
-        <div class="panel__progress">
-          <div class="panel__progress-track">
-            <div class="panel__progress-fill" :style="{ width: (progress * 100) + '%' }"></div>
+        <div class="panel__step panel__step--active">
+          <div class="panel__step-icon panel__step-icon--active">
+            <span class="panel__spinner"></span>
           </div>
-          <span class="panel__progress-pct mono">{{ Math.round(progress * 100) }}%</span>
+          <span class="panel__step-msg panel__step-msg--active">{{ currentStep.msg }}</span>
         </div>
+      </div>
+      <div class="panel__progress">
+        <div class="panel__progress-track">
+          <div class="panel__progress-fill" :style="{ width: (progress * 100) + '%' }"></div>
+        </div>
+        <span class="panel__progress-pct">{{ Math.round(progress * 100) }}%</span>
       </div>
     </template>
 
     <!-- DONE -->
     <template v-else-if="status === 'done'">
-      <div class="panel__log">
-        <div class="panel__log-entry entry--ok">
-          <span class="panel__log-tag">OK</span>
-          <span class="panel__log-msg">Conversion complete</span>
+      <div class="panel__result">
+        <div class="panel__result-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
-        <div v-if="stats" class="panel__log-entry entry--meta">
-          <span class="panel__log-tag">→</span>
-          <span class="panel__log-msg">
-            <span class="mono">{{ stats.trackCount }}</span> tracks ·
-            <span class="mono">{{ stats.clipCount }}</span> clips ·
-            <span class="mono">{{ stats.wavCount }}</span> wav files ·
-            <span class="panel__als-name mono">{{ stats.alsName }}</span>
-          </span>
-        </div>
-        <div v-if="stats && stats.wavCount === 0" class="panel__log-entry entry--warn">
-          <span class="panel__log-tag">!</span>
-          <span class="panel__log-msg">No embedded audio — place your WAV files in <span class="mono">Samples/imported/</span> next to the .als file</span>
+        <div class="panel__result-info">
+          <p class="panel__result-title">Conversion complete</p>
+          <p v-if="stats" class="panel__result-meta">
+            {{ stats.trackCount }} tracks · {{ stats.clipCount }} clips · {{ stats.wavCount }} wav files
+            <span class="panel__als-name">· {{ stats.alsName }}</span>
+          </p>
         </div>
       </div>
+      <div v-if="stats && stats.wavCount === 0" class="panel__notice">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        No embedded audio — place WAV files in <code class="inline-code">Samples/imported/</code> next to the .als file
+      </div>
       <div class="panel__actions">
-        <button class="panel__btn panel__btn--green" @click="$emit('download')">
+        <button class="panel__btn panel__btn--primary" @click="$emit('download')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -70,10 +77,17 @@
 
     <!-- ERROR -->
     <template v-else-if="status === 'error'">
-      <div class="panel__log">
-        <div class="panel__log-entry entry--err">
-          <span class="panel__log-tag">ERR</span>
-          <span class="panel__log-msg">{{ errorMessage }}</span>
+      <div class="panel__error">
+        <div class="panel__error-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <p class="panel__error-title">Conversion failed</p>
+          <p class="panel__error-msg">{{ errorMessage }}</p>
         </div>
       </div>
       <div class="panel__actions">
@@ -97,18 +111,18 @@ const props = defineProps({
 defineEmits(['download', 'reset'])
 
 const STEPS = [
-  { at: 0.00, tag: '$',  msg: 'Parsing AAF container structure',   type: 'cmd' },
-  { at: 0.10, tag: 'OK', msg: 'CFB filesystem mounted',            type: 'ok'  },
-  { at: 0.25, tag: '$',  msg: 'Building essence map',              type: 'cmd' },
-  { at: 0.40, tag: 'OK', msg: 'Master mob resolved, tracks mapped', type: 'ok' },
-  { at: 0.50, tag: '$',  msg: 'Generating Ableton Live XML',       type: 'cmd' },
-  { at: 0.60, tag: 'OK', msg: 'ALS structure validated',           type: 'ok'  },
-  { at: 0.70, tag: '$',  msg: 'Compressing with gzip',             type: 'cmd' },
-  { at: 0.80, tag: '$',  msg: 'Packaging ZIP archive',             type: 'cmd' },
-  { at: 0.90, tag: 'OK', msg: 'Packaging complete',                 type: 'ok'  },
+  { at: 0.00, msg: 'Parsing AAF container structure' },
+  { at: 0.10, msg: 'CFB filesystem mounted' },
+  { at: 0.25, msg: 'Building essence map' },
+  { at: 0.40, msg: 'Master mob resolved, tracks mapped' },
+  { at: 0.50, msg: 'Generating Ableton Live XML' },
+  { at: 0.60, msg: 'ALS structure validated' },
+  { at: 0.70, msg: 'Compressing with gzip' },
+  { at: 0.80, msg: 'Packaging ZIP archive' },
+  { at: 0.90, msg: 'Packaging complete' },
 ]
 
-const visibleLogLines = computed(() =>
+const visibleSteps = computed(() =>
   STEPS.filter(s => props.progress > s.at + 0.08)
 )
 
@@ -119,115 +133,193 @@ const currentStep = computed(() =>
 
 <style scoped>
 .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-mid);
-  padding: 1.5rem 1.75rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1rem;
 }
 
-/* ── LOG ── */
-.panel__log {
+/* ── STEPS ── */
+.panel__steps {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.45rem;
 }
 
-.panel__log-entry {
+.panel__step {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
-  font-size: 0.83rem;
-  line-height: 1.65;
+  font-size: 0.82rem;
 }
 
-.panel__log-tag {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  font-weight: 700;
+.panel__step-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  min-width: 2.2rem;
-  color: var(--text-muted);
-  letter-spacing: 0.03em;
 }
 
-.panel__log-msg {
-  color: var(--text);
+.panel__step-icon--done {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
 }
 
-/* entry variants */
-.entry--ok   .panel__log-tag { color: var(--green); }
-.entry--err  .panel__log-tag { color: var(--red); }
-.entry--err  .panel__log-msg { color: var(--red); }
-.entry--meta .panel__log-tag { color: var(--text-dim); }
-.entry--meta .panel__log-msg { color: var(--text-dim); font-size: 0.78rem; }
-.entry--warn .panel__log-tag { color: var(--yellow); }
-.entry--warn .panel__log-msg { color: var(--yellow); font-size: 0.78rem; }
-.entry--active .panel__log-msg { color: var(--yellow); }
-
-.tag--active {
-  color: var(--yellow) !important;
-  animation: pulse-tag 1.4s ease-in-out infinite;
+.panel__step-icon--active {
+  background: var(--warm-dim);
+  border: 1px solid rgba(255, 140, 66, 0.3);
 }
 
-@keyframes pulse-tag {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.panel__step--done .panel__step-msg {
+  color: var(--text-dim);
 }
 
-.panel__cursor {
-  color: var(--yellow);
-  animation: blink 0.9s step-end infinite;
-  margin-left: 1px;
-  font-family: var(--mono);
+.panel__step-msg--active {
+  color: var(--text-bright);
+  font-weight: 500;
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+.panel__spinner {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid rgba(255, 140, 66, 0.3);
+  border-top-color: var(--warm);
+  border-radius: 50%;
+  display: block;
+  animation: spin 0.7s linear infinite;
 }
 
-.panel__als-name { color: var(--cyan); }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-/* ── PROGRESS BAR ── */
+/* ── PROGRESS ── */
 .panel__progress {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  margin-top: 0.4rem;
+  gap: 0.75rem;
 }
 
 .panel__progress-track {
   flex: 1;
-  height: 3px;
+  height: 4px;
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .panel__progress-fill {
   height: 100%;
-  background: var(--green);
+  background: linear-gradient(90deg, var(--accent), var(--warm));
+  border-radius: 10px;
   transition: width 0.3s ease;
-  box-shadow: 0 0 8px var(--green-glow);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .panel__progress-pct {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
+  font-family: var(--mono);
   color: var(--text-dim);
   flex-shrink: 0;
   min-width: 2.5rem;
   text-align: right;
 }
 
+/* ── DONE ── */
+.panel__result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.panel__result-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.panel__result-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 0.2rem;
+}
+
+.panel__result-meta {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.panel__als-name {
+  color: var(--amber);
+}
+
+/* ── NOTICE ── */
+.panel__notice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--warm-dim);
+  border: 1px solid rgba(255, 140, 66, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.79rem;
+  color: var(--warm);
+}
+
+/* ── ERROR ── */
+.panel__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.panel__error-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--red-dim);
+  border: 1px solid rgba(240, 62, 62, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.panel__error-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 0.25rem;
+}
+
+.panel__error-msg {
+  font-size: 0.8rem;
+  color: var(--red);
+}
+
 /* ── ACTIONS ── */
 .panel__actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
-  padding-top: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--border);
 }
 
@@ -235,28 +327,29 @@ const currentStep = computed(() =>
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: none;
   font-family: var(--font);
   font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.6rem 1.3rem;
+  padding: 0.55rem 1.2rem;
   cursor: pointer;
   transition: all 0.15s;
-  border-radius: 2px;
-  letter-spacing: 0.01em;
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.01em;
 }
 
-.panel__btn--green {
-  border: 1px solid var(--green);
-  color: var(--green);
+.panel__btn--primary {
+  background: var(--accent);
+  border: none;
+  color: #fff;
 }
 
-.panel__btn--green:hover {
-  background: var(--green-dim);
-  box-shadow: 0 0 16px var(--green-glow);
+.panel__btn--primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white 15%);
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .panel__btn--ghost {
+  background: none;
   border: 1px solid var(--border-mid);
   color: var(--text-dim);
 }
@@ -268,6 +361,6 @@ const currentStep = computed(() =>
 }
 
 /* ── TRANSITIONS ── */
-.log-fade-enter-active { transition: opacity 0.25s ease, transform 0.25s ease; }
-.log-fade-enter-from   { opacity: 0; transform: translateY(4px); }
+.step-fade-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.step-fade-enter-from   { opacity: 0; transform: translateY(4px); }
 </style>

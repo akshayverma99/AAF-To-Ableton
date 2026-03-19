@@ -1,51 +1,52 @@
 <template>
   <div class="tview" v-if="timeline">
 
-    <!-- header row -->
-    <div class="tview__header">
-      <div class="tview__header-left">
-        <span class="tview__label">PROJECT</span>
-        <span class="tview__project-name">{{ timeline.name }}</span>
+    <!-- stats row -->
+    <div class="tview__stats">
+      <div class="tview__stat-item">
+        <span class="tview__stat-value">{{ timeline.tracks.length }}</span>
+        <span class="tview__stat-label">tracks</span>
       </div>
-      <div class="tview__header-right">
-        <span class="tview__stat">{{ timeline.tracks.length }}<span class="tview__stat-label"> tracks</span></span>
-        <span class="tview__stat-sep">·</span>
-        <span class="tview__stat">{{ totalClips }}<span class="tview__stat-label"> clips</span></span>
-        <span class="tview__stat-sep">·</span>
-        <span class="tview__stat">{{ duration }}</span>
+      <div class="tview__stat-divider"></div>
+      <div class="tview__stat-item">
+        <span class="tview__stat-value">{{ totalClips }}</span>
+        <span class="tview__stat-label">clips</span>
       </div>
+      <div class="tview__stat-divider"></div>
+      <div class="tview__stat-item">
+        <span class="tview__stat-value">{{ duration }}</span>
+        <span class="tview__stat-label">duration</span>
+      </div>
+      <div class="tview__project-name">{{ timeline.name }}</div>
     </div>
 
-    <!-- track rows -->
-    <div class="tview__body">
+    <!-- track list -->
+    <div class="tview__tracks">
       <div
         v-for="(track, ti) in timeline.tracks"
         :key="ti"
         class="tview__track"
       >
-        <!-- track header line -->
-        <div class="tview__track-row">
-          <span class="tview__tree">{{ ti === timeline.tracks.length - 1 ? '└──' : '├──' }}</span>
-          <span class="tview__track-tag">AUDIO</span>
-          <span class="tview__track-name">{{ track.name || `Track ${ti + 1}` }}</span>
-          <span class="tview__track-meta">{{ track.clips ? track.clips.length : 0 }} clips</span>
+        <div class="tview__track-header">
+          <div class="tview__track-left">
+            <span class="tview__track-tag">AUDIO</span>
+            <span class="tview__track-name">{{ track.name || `Track ${ti + 1}` }}</span>
+          </div>
+          <span class="tview__track-count">{{ track.clips ? track.clips.length : 0 }} clips</span>
         </div>
 
-        <!-- clip rows (show first 6) -->
-        <div class="tview__clips">
+        <div v-if="track.clips && track.clips.length" class="tview__clips">
           <div
             v-for="(clip, ci) in (track.clips || []).slice(0, 6)"
             :key="ci"
-            class="tview__clip-row"
+            class="tview__clip"
           >
-            <span class="tview__tree tview__tree--inner">{{ ti === timeline.tracks.length - 1 ? '    ' : '│   ' }}{{ ci === Math.min((track.clips?.length || 0), 6) - 1 ? '└' : '├' }}</span>
-            <span class="tview__clip-pos">@{{ fmtTime(clip.positionBeats ?? clip.startTime / 48000) }}</span>
+            <span class="tview__clip-pos">{{ fmtTime(clip.positionBeats ?? clip.startTime / 48000) }}</span>
             <span class="tview__clip-dur">{{ fmtDur(clip.durationBeats ?? clip.length / 48000) }}</span>
             <span class="tview__clip-name">{{ clip.wavName ? clip.wavName.replace(/\.wav$/i, '') : (clip.trackName || `clip_${ci}`) }}</span>
           </div>
-          <div v-if="(track.clips?.length || 0) > 6" class="tview__clip-more">
-            <span class="tview__tree tview__tree--inner">{{ ti === timeline.tracks.length - 1 ? '    ' : '│   ' }}└</span>
-            <span class="tview__more-text">… +{{ track.clips.length - 6 }} more clips</span>
+          <div v-if="(track.clips?.length || 0) > 6" class="tview__clip tview__clip--more">
+            +{{ track.clips.length - 6 }} more clips
           </div>
         </div>
       </div>
@@ -53,9 +54,12 @@
 
     <!-- warnings -->
     <div v-if="timeline.warnings?.length" class="tview__warnings">
-      <div class="tview__warn-row" v-for="(w, i) in timeline.warnings" :key="i">
-        <span class="tview__warn-prefix">[WARN]</span>
-        <span>{{ w }}</span>
+      <div class="tview__warn" v-for="(w, i) in timeline.warnings" :key="i">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        {{ w }}
       </div>
     </div>
 
@@ -98,201 +102,188 @@ function fmtTime(sec) {
 
 function fmtDur(sec) {
   if (sec == null) return ''
-  return `[${sec.toFixed(2)}s]`
+  return `${sec.toFixed(2)}s`
 }
 </script>
 
 <style scoped>
 .tview {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-mid);
-  font-size: 0.78rem;
-  font-family: var(--font);
+  display: flex;
+  flex-direction: column;
 }
 
-/* header */
-.tview__header {
+/* ── STATS ── */
+.tview__stats {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--border-mid);
-  background: var(--bg-elevated);
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.tview__header-left,
-.tview__header-right {
+.tview__stat-item {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: baseline;
+  gap: 0.35rem;
 }
 
-.tview__label {
-  font-family: var(--mono);
-  font-size: 0.6rem;
+.tview__stat-value {
+  font-size: 0.88rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--text-dim);
-  border: 1px solid var(--border-bright);
-  padding: 0.1rem 0.35rem;
-}
-
-.tview__project-name {
-  font-family: var(--mono);
-  color: var(--green);
-  font-weight: 600;
-}
-
-.tview__stat {
-  font-family: var(--mono);
   color: var(--text-bright);
-  font-weight: 600;
+  font-family: var(--mono);
 }
 
 .tview__stat-label {
-  font-family: var(--font);
-  color: var(--text-dim);
-  font-weight: 400;
-  font-size: 0.7rem;
-}
-
-.tview__stat-sep {
+  font-size: 0.72rem;
   color: var(--text-dim);
 }
 
-/* body */
-.tview__body {
-  padding: 0.85rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  max-height: 480px;
-  overflow-y: auto;
+.tview__stat-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-mid);
 }
 
-.tview__track {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.tview__track-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  padding: 0.2rem 0;
-  line-height: 1.5;
-}
-
-.tview__tree {
-  font-family: var(--mono);
-  color: var(--text-muted);
+.tview__project-name {
+  margin-left: auto;
   font-size: 0.75rem;
-  flex-shrink: 0;
-  font-weight: 400;
-  user-select: none;
-}
-
-.tview__tree--inner {
-  font-size: 0.72rem;
-}
-
-.tview__track-tag {
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--green);
-  border: 1px solid rgba(255, 107, 0, 0.3);
-  padding: 0.05rem 0.3rem;
-  flex-shrink: 0;
-}
-
-.tview__track-name {
-  color: var(--text-bright);
   font-weight: 600;
-  flex: 1;
-}
-
-.tview__track-meta {
+  color: var(--accent);
   font-family: var(--mono);
-  color: var(--text-dim);
-  font-size: 0.7rem;
-  flex-shrink: 0;
-}
-
-/* clips */
-.tview__clips {
-  display: flex;
-  flex-direction: column;
-}
-
-.tview__clip-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  line-height: 1.6;
-  padding: 0;
-}
-
-.tview__clip-pos {
-  font-family: var(--mono);
-  color: var(--cyan);
-  opacity: 0.75;
-  font-size: 0.72rem;
-  flex-shrink: 0;
-  min-width: 4rem;
-}
-
-.tview__clip-dur {
-  font-family: var(--mono);
-  color: var(--text-dim);
-  font-size: 0.7rem;
-  flex-shrink: 0;
-  min-width: 4.5rem;
-}
-
-.tview__clip-name {
-  color: var(--text);
-  font-size: 0.73rem;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tview__clip-more {
+/* ── TRACKS ── */
+.tview__tracks {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.tview__track {
+  border-bottom: 1px solid var(--border);
+}
+
+.tview__track:last-child {
+  border-bottom: none;
+}
+
+.tview__track-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1.25rem;
+  gap: 1rem;
+}
+
+.tview__track-left {
+  display: flex;
+  align-items: center;
   gap: 0.6rem;
-  line-height: 1.6;
+  min-width: 0;
 }
 
-.tview__more-text {
-  color: var(--text-dim);
-  font-style: italic;
+.tview__track-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.tview__track-name {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tview__track-count {
   font-size: 0.72rem;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
-/* warnings */
-.tview__warnings {
-  border-top: 1px solid var(--border-mid);
-  padding: 0.6rem 1rem;
+/* ── CLIPS ── */
+.tview__clips {
+  padding: 0 1.25rem 0.75rem 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
 
-.tview__warn-row {
+.tview__clip {
   display: flex;
   align-items: baseline;
-  gap: 0.6rem;
-  font-size: 0.75rem;
-  color: var(--yellow);
+  gap: 0.75rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.77rem;
 }
 
-.tview__warn-prefix {
+.tview__clip:not(.tview__clip--more):hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.tview__clip-pos {
   font-family: var(--mono);
-  font-weight: 700;
+  color: var(--amber);
+  font-size: 0.72rem;
   flex-shrink: 0;
+  min-width: 3.5rem;
+}
+
+.tview__clip-dur {
+  font-family: var(--mono);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  min-width: 4rem;
+}
+
+.tview__clip-name {
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tview__clip--more {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.72rem;
+}
+
+/* ── WARNINGS ── */
+.tview__warnings {
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tview__warn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--warm);
+  padding: 0.5rem 0.75rem;
+  background: var(--warm-dim);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 140, 66, 0.15);
 }
 </style>

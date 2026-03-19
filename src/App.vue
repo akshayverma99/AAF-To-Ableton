@@ -1,61 +1,58 @@
 <template>
-  <div class="terminal">
+  <div class="app">
 
-    <header class="terminal__header">
-      <div class="terminal__header-inner">
-        <div class="terminal__brand">
-          <span class="terminal__brand-prefix">~/</span>
-          <span class="terminal__brand-name">aaf-to-als</span>
+    <header class="app__header">
+      <div class="app__header-inner">
+        <div class="app__flow">
+          <span class="app__flow-from">DaVinci Resolve</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+          <span class="app__flow-to">Ableton Live</span>
         </div>
-        <div class="terminal__header-center">
-          <span class="terminal__tag">DaVinci Resolve</span>
-          <span class="terminal__arrow">→</span>
-          <span class="terminal__tag terminal__tag--green">Ableton Live</span>
-        </div>
-        <div class="terminal__version">v1.0.0</div>
       </div>
     </header>
 
-    <div class="terminal__body">
+    <main class="app__main">
 
-      <div class="terminal__log-init">
-        <div class="terminal__log-line">
-          <span class="terminal__prompt">$</span>
-          <span class="terminal__log-text mono">aaf-to-als --init</span>
+      <section class="app__hero">
+        <h1 class="app__title">Convert AAF to ALS</h1>
+        <p class="app__subtitle">Drop your DaVinci Resolve AAF export and get an Ableton Live set in seconds.</p>
+      </section>
+
+      <div class="app__card">
+        <div class="app__card-header">
+          <span class="app__card-label">Upload File</span>
         </div>
-        <div class="terminal__log-line">
-          <span class="terminal__prompt ok">[OK]</span>
-          <span class="terminal__log-text">System ready. Drop a <code class="inline-code">.aaf</code> file to begin.</span>
+        <FileDropzone
+          v-model:file="aafFile"
+          :error="fileError"
+          @error="fileError = $event"
+        />
+        <div class="app__action">
+          <button
+            class="app__run-btn"
+            :disabled="!aafFile || !!fileError || conversionStatus === 'converting'"
+            @click="startConversion"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Run Conversion
+          </button>
+          <p v-if="!aafFile || fileError" class="app__action-hint">Load an AAF file above to continue</p>
         </div>
       </div>
 
-      <div class="terminal__divider">
-        <span class="terminal__divider-label">INPUT</span>
-      </div>
-
-      <FileDropzone
-        v-model:file="aafFile"
-        :error="fileError"
-        @error="fileError = $event"
-      />
-
-      <div class="terminal__run">
-        <button
-          class="terminal__run-btn"
-          :disabled="!aafFile || !!fileError || conversionStatus === 'converting'"
-          @click="startConversion"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Run Conversion
-        </button>
-        <p v-if="!aafFile || fileError" class="terminal__run-hint">Load an AAF file above to enable conversion</p>
-      </div>
-
-      <template v-if="conversionStatus !== 'idle'">
-        <div class="terminal__divider">
-          <span class="terminal__divider-label">EXECUTE</span>
+      <div v-if="conversionStatus !== 'idle'" class="app__card">
+        <div class="app__card-header">
+          <span class="app__card-label">{{ conversionStatus === 'converting' ? 'Processing' : conversionStatus === 'done' ? 'Complete' : 'Error' }}</span>
+          <span v-if="conversionStatus === 'converting'" class="app__card-status app__card-status--active">
+            <span class="app__card-dot"></span>
+            Running
+          </span>
+          <span v-else-if="conversionStatus === 'done'" class="app__card-status app__card-status--done">Done</span>
+          <span v-else class="app__card-status app__card-status--error">Failed</span>
         </div>
         <DownloadPanel
           :status="conversionStatus"
@@ -65,21 +62,20 @@
           @download="downloadResult"
           @reset="resetConversion"
         />
-      </template>
+      </div>
 
-      <template v-if="parsedTimeline">
-        <div class="terminal__divider">
-          <span class="terminal__divider-label">OUTPUT</span>
+      <div v-if="parsedTimeline" class="app__card">
+        <div class="app__card-header">
+          <span class="app__card-label">Timeline Preview</span>
+          <span class="app__card-meta">{{ parsedTimeline.tracks.length }} tracks</span>
         </div>
         <TrackPreview :timeline="parsedTimeline" :stats="conversionStats" />
-      </template>
+      </div>
 
-    </div>
+    </main>
 
-    <footer class="terminal__footer">
-      <span class="mono">process exited <span class="terminal__footer-ok">0</span></span>
-      <span class="terminal__footer-sep">//</span>
-      <span>Vue 3 · cfb · pako · JSZip</span>
+    <footer class="app__footer">
+      <span>Built with Vue 3 · cfb · pako · JSZip</span>
     </footer>
 
   </div>
@@ -143,43 +139,50 @@ function resetConversion() {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Halloween — grey + orange */
-  --bg:           #1a1a1a;
-  --bg-panel:     #232323;
-  --bg-elevated:  #1e1e1e;
-  --bg-deep:      #141414;
-  --selection:    #2a2a2a;
+  --bg:           #111111;
+  --bg-panel:     #1a1a1a;
+  --bg-elevated:  #202020;
+  --bg-deep:      #0d0d0d;
+  --bg-card:      #181818;
 
-  --border:       #2e2e2e;
-  --border-mid:   #3a3a3a;
-  --border-bright:#555555;
+  --border:       #252525;
+  --border-mid:   #2e2e2e;
+  --border-bright:#444444;
 
-  --green:        #ff6b00;   /* pumpkin orange — primary/ok */
+  --accent:       #ff6b00;
+  --accent-dim:   rgba(255, 107, 0, 0.1);
+  --accent-glow:  rgba(255, 107, 0, 0.2);
+  --accent-border:rgba(255, 107, 0, 0.3);
+
+  --warm:         #ff8c42;
+  --warm-dim:     rgba(255, 140, 66, 0.12);
+
+  --amber:        #ffb347;
+  --amber-dim:    rgba(255, 179, 71, 0.1);
+
+  /* keep legacy names for child components */
+  --green:        #ff6b00;
   --green-dim:    rgba(255, 107, 0, 0.1);
-  --green-glow:   rgba(255, 107, 0, 0.25);
-
-  --yellow:       #ff8c42;   /* warm orange — active/progress */
+  --green-glow:   rgba(255, 107, 0, 0.2);
+  --yellow:       #ff8c42;
   --yellow-dim:   rgba(255, 140, 66, 0.12);
-
-  --cyan:         #ffb347;   /* amber — secondary highlights */
+  --cyan:         #ffb347;
   --cyan-dim:     rgba(255, 179, 71, 0.1);
 
-  --blue-bright:  #cc9966;
-  --blue:         #996633;
+  --red:          #f03e3e;
+  --red-dim:      rgba(240, 62, 62, 0.1);
 
-  --red:          #ff3b48;
-  --red-dim:      rgba(255, 59, 72, 0.12);
-
-  --orange:       #ff6b00;
-  --magenta:      #cc6699;
-
-  --text:         #c8c8c8;   /* light grey */
-  --text-dim:     #787878;   /* mid grey */
-  --text-muted:   #484848;   /* dark grey */
-  --text-bright:  #f5f5f5;
+  --text:         #b8b8b8;
+  --text-dim:     #666666;
+  --text-muted:   #3d3d3d;
+  --text-bright:  #f0f0f0;
 
   --font:         'Inter', system-ui, sans-serif;
   --mono:         'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius:       10px;
+  --radius-sm:    6px;
+  --radius-lg:    14px;
 }
 
 *, *::before, *::after {
@@ -208,203 +211,252 @@ code.inline-code {
   font-size: 0.85em;
   background: var(--bg-elevated);
   border: 1px solid var(--border-mid);
-  padding: 0.05em 0.35em;
-  color: var(--cyan);
+  padding: 0.05em 0.4em;
+  border-radius: 4px;
+  color: var(--amber);
 }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-deep); }
-::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
 </style>
 
 <style scoped>
-.terminal {
+.app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  max-width: 880px;
-  margin: 0 auto;
 }
 
 /* ── HEADER ── */
-.terminal__header {
+.app__header {
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: var(--bg-elevated);
+  background: rgba(17, 17, 17, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 100;
 }
 
-.terminal__header-inner {
+.app__header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.8rem 1.75rem;
+  justify-content: center;
+  padding: 0 2rem;
+  height: 56px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.terminal__brand {
-  display: flex;
-  align-items: baseline;
-  font-size: 1rem;
-  font-weight: 700;
-  font-family: var(--mono);
-  letter-spacing: -0.02em;
-}
-
-.terminal__brand-prefix { color: var(--text-dim); }
-.terminal__brand-name   { color: var(--text-bright); }
-
-.terminal__header-center {
+.app__brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.72rem;
+  gap: 0.6rem;
+}
+
+.app__brand-mark {
+  width: 30px;
+  height: 30px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.app__brand-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+}
+
+.app__flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.04em;
-}
-
-.terminal__tag {
   color: var(--text-dim);
-  border: 1px solid var(--border-mid);
-  padding: 0.2rem 0.6rem;
-  border-radius: 2px;
 }
 
-.terminal__tag--green {
-  color: var(--green);
-  border-color: rgba(255, 107, 0, 0.35);
-  background: rgba(255, 107, 0, 0.06);
+.app__flow-to {
+  color: var(--accent);
+  font-weight: 600;
 }
 
-.terminal__arrow {
+.app__flow svg {
   color: var(--text-muted);
-  font-size: 1rem;
-  font-weight: 300;
 }
 
-.terminal__version {
+.app__version {
   font-size: 0.7rem;
   font-family: var(--mono);
   color: var(--text-muted);
-  background: var(--bg-deep);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  padding: 0.2rem 0.5rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
 }
 
-/* ── BODY ── */
-.terminal__body {
+/* ── MAIN ── */
+.app__main {
   flex: 1;
-  padding: 2rem 1.75rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 3rem 2rem 4rem;
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
 }
 
-/* ── INIT LOG ── */
-.terminal__log-init {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 1.75rem;
+/* ── HERO ── */
+.app__hero {
+  margin-bottom: 0.5rem;
 }
 
-.terminal__log-line {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  font-size: 0.85rem;
-}
-
-.terminal__prompt {
-  font-family: var(--mono);
+.app__title {
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  min-width: 1.5rem;
+  color: var(--text-bright);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
-.terminal__prompt.ok { color: var(--green); }
 
-.terminal__log-text { color: var(--text); }
+.app__subtitle {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  max-width: 480px;
+  line-height: 1.6;
+}
 
-/* ── DIVIDERS ── */
-.terminal__divider {
+/* ── CARDS ── */
+.app__card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.app__card-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin: 1.75rem 0 1.1rem;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.terminal__divider::before,
-.terminal__divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.terminal__divider-label {
-  font-size: 0.65rem;
+.app__card-label {
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.app__card-meta {
+  font-size: 0.72rem;
   color: var(--text-muted);
-  flex-shrink: 0;
+  font-family: var(--mono);
+}
+
+.app__card-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.app__card-status--active {
+  color: var(--warm);
+  background: var(--warm-dim);
+  border: 1px solid rgba(255, 140, 66, 0.2);
+}
+
+.app__card-status--done {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+}
+
+.app__card-status--error {
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid rgba(240, 62, 62, 0.2);
+}
+
+.app__card-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--warm);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* ── RUN BUTTON ── */
-.terminal__run {
+.app__action {
+  padding: 1.25rem;
+  border-top: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin-top: 1.1rem;
+  align-items: center;
+  gap: 1rem;
 }
 
-.terminal__run-btn {
+.app__run-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  background: none;
-  border: 1px solid var(--border-bright);
-  color: var(--text-bright);
+  background: var(--accent);
+  border: none;
+  color: #fff;
   font-family: var(--font);
   font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.7rem 1.75rem;
+  padding: 0.65rem 1.5rem;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
-  letter-spacing: 0.01em;
-  border-radius: 2px;
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  letter-spacing: -0.01em;
+  border-radius: var(--radius-sm);
 }
 
-.terminal__run-btn:not(:disabled):hover {
-  border-color: var(--green);
-  color: var(--green);
-  background: var(--green-dim);
-  box-shadow: 0 0 20px var(--green-glow);
+.app__run-btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--accent) 85%, white 15%);
+  box-shadow: 0 0 24px var(--accent-glow), 0 4px 12px rgba(255, 107, 0, 0.3);
 }
 
-.terminal__run-btn:disabled {
-  opacity: 0.3;
+.app__run-btn:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.terminal__run-hint {
+.app__action-hint {
   font-size: 0.78rem;
   color: var(--text-muted);
-  margin-left: 0.1rem;
 }
 
 /* ── FOOTER ── */
-.terminal__footer {
+.app__footer {
   border-top: 1px solid var(--border);
-  padding: 0.8rem 1.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  padding: 1rem 2rem;
+  text-align: center;
   font-size: 0.72rem;
   color: var(--text-muted);
 }
-
-.terminal__footer-sep { color: var(--border-mid); }
-.terminal__footer-ok  { color: var(--green); font-family: var(--mono); }
 </style>
