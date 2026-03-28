@@ -2,7 +2,7 @@
 
 Convert AAF timeline exports from DaVinci Resolve into Ableton Live projects (.als).
 
-**Live at:** https://aaf-to-ableton-converter.vercel.app/
+**Live at:** https://aaf-to-ableton.vercel.app/
 
 ## How to use
 
