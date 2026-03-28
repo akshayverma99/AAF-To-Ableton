@@ -736,14 +736,14 @@ ${Array.from({ length: 8 }, (_, i) => `      <Scene Id="${i}">
     <ViewStateSessionHasDetail Value="true"/>
     <ViewStateDetailIsSample Value="true"/>
     <ViewStates>
-      <SessionIO Value="0"/>
+      <SessionIO Value="1"/>
       <SessionSends Value="1"/>
       <SessionReturns Value="1"/>
       <SessionMixer Value="1"/>
       <SessionTrackDelay Value="0"/>
       <SessionCrossFade Value="0"/>
       <SessionShowOverView Value="0"/>
-      <ArrangerIO Value="0"/>
+      <ArrangerIO Value="1"/>
       <ArrangerReturns Value="1"/>
       <ArrangerMixer Value="1"/>
       <ArrangerTrackDelay Value="0"/>
